@@ -1,0 +1,71 @@
+# pyproject.toml - Project configuration for codex-test monorepo
+
+[project]
+name = "codex-test"
+version = "0.1.0"
+description = "FastAPI-based SEC filings collector service"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "aiolimiter>=1.1.0",
+    "alembic>=1.13.2",
+    "beautifulsoup4>=4.12.3",
+    "fastapi>=0.111.0",
+    "httpx>=0.27.0",
+    "pydantic-settings>=2.3.4",
+    "sqlalchemy>=2.0.30",
+    "structlog>=24.4.0",
+    "psycopg[binary]>=3.1.18",
+    "uvicorn[standard]>=0.30.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.10.0",
+    "pytest>=8.2.1",
+    "pytest-asyncio>=0.23.6",
+    "ruff>=0.4.9",
+    "types-requests>=2.32.0.20240523",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+    "B",
+    "DTZ",
+    "ASYNC",
+    "ANN",
+    "RUF",
+]
+ignore = [
+    "ANN101",
+    "ANN102",
+]
+src = ["app", "tests"]
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["ANN001", "ANN201"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["app", "tests"]
+strict = true
+warn_unused_configs = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+show_error_codes = true
+plugins = []
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
