@@ -9,6 +9,7 @@ from sqlalchemy import desc, select
 
 from app.collectors.eightk_parser import parse_and_signal
 from app.collectors.frames_loader import FramesLoader
+from app.collectors.prelim_turnaround import find_prelim_turnarounds
 from app.collectors.submissions_watcher import refresh_submissions
 from app.core.config import configure_logging, settings
 from app.core.db import AsyncSessionLocal, init_models
@@ -34,7 +35,9 @@ def create_app() -> FastAPI:
         return {"ok": True}
 
     @app.get("/signals")
-    async def get_signals(signal_type: Optional[str] = Query(None), limit: int = 50) -> list[dict[str, object]]:
+    async def get_signals(
+        signal_type: Optional[str] = Query(None, alias="type"), limit: int = 50
+    ) -> list[dict[str, object]]:
         async with AsyncSessionLocal() as session:
             stmt = select(Signal).order_by(desc(Signal.created_at)).limit(limit)
             if signal_type:
@@ -91,6 +94,11 @@ def create_app() -> FastAPI:
             session.add_all(signal_rows)
             await session.commit()
         return {"ok": True, "inserted": 2}
+
+    @app.get("/turnarounds/prelim")
+    async def prelim_turnarounds(prev: str, from_days: int = 60, limit: int = 50) -> list[dict[str, object]]:
+        results = await find_prelim_turnarounds(prev_frame=prev, from_days=from_days, limit=limit)
+        return results
 
     return app
 

@@ -70,3 +70,12 @@ class EdgarClient:
         response.raise_for_status()
         async for chunk in response.aiter_bytes():
             yield chunk
+
+    async def download_url(self, url: str) -> str:
+        response = await self._client.get(url)
+        response.raise_for_status()
+        logger.info("edgar.download_url", url=url, status=response.status_code)
+        return response.text
+
+    async def get_submissions(self, cik: str) -> dict[str, Any]:
+        return await self.get_company_submissions(cik)
