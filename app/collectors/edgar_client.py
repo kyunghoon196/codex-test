@@ -26,6 +26,8 @@ class EdgarClient:
         self.settings = settings
         self.max_429_retries = max_429_retries
         self.backoff_factor = backoff_factor
+        self._text_cache: dict[str, str] = {}
+        self._submissions_cache: dict[str, dict[str, Any]] = {}
 
     async def __aenter__(self) -> "EdgarClient":
         await self._client.__aenter__()
@@ -72,10 +74,17 @@ class EdgarClient:
             yield chunk
 
     async def download_url(self, url: str) -> str:
+        if url in self._text_cache:
+            return self._text_cache[url]
         response = await self._client.get(url)
         response.raise_for_status()
         logger.info("edgar.download_url", url=url, status=response.status_code)
+        self._text_cache[url] = response.text
         return response.text
 
     async def get_submissions(self, cik: str) -> dict[str, Any]:
-        return await self.get_company_submissions(cik)
+        if cik in self._submissions_cache:
+            return self._submissions_cache[cik]
+        data = await self.get_company_submissions(cik)
+        self._submissions_cache[cik] = data
+        return data

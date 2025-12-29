@@ -96,8 +96,22 @@ def create_app() -> FastAPI:
         return {"ok": True, "inserted": 2}
 
     @app.get("/turnarounds/prelim")
-    async def prelim_turnarounds(prev: str, from_days: int = 60, limit: int = 50) -> list[dict[str, object]]:
-        results = await find_prelim_turnarounds(prev_frame=prev, from_days=from_days, limit=limit)
+    async def prelim_turnarounds(
+        prev: str,
+        from_days: int = 60,
+        limit: int = 50,
+        max_cik_scan: int = 60,
+        max_8k_per_cik: int = 1,
+        time_limit_sec: int = 25,
+    ) -> list[dict[str, object]]:
+        results = await find_prelim_turnarounds(
+            prev_frame=prev,
+            from_days=from_days,
+            limit=limit,
+            max_cik_scan=max_cik_scan,
+            max_8k_per_cik=max_8k_per_cik,
+            time_limit_sec=time_limit_sec,
+        )
         return results
 
     return app

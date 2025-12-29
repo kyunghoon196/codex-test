@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
 from urllib.parse import urljoin
@@ -25,16 +26,21 @@ async def find_prelim_turnarounds(
     from_days: int = 60,
     limit: int = 50,
     client: EdgarClient | None = None,
+    max_cik_scan: int = 60,
+    max_8k_per_cik: int = 1,
+    time_limit_sec: int = 25,
 ) -> list[dict[str, Any]]:
     """Identify companies with prior-quarter losses and recent 8-K prelim positives."""
     edgar = client or EdgarClient()
     results: list[dict[str, Any]] = []
-
+    start = time.monotonic()
     frame_payload = await edgar.get_frames(frame=prev_frame)
-    loss_ciks = _loss_ciks_from_frame(frame_payload)
+    loss_ciks = _loss_ciks_from_frame(frame_payload)[:max_cik_scan]
     cutoff = datetime.now(timezone.utc) - timedelta(days=from_days)
 
     for cik, prev_value, period_end in loss_ciks:
+        if time.monotonic() - start > time_limit_sec:
+            break
         submissions = await edgar.get_submissions(cik)
         recent = submissions.get("filings", {}).get("recent", {})
         accessions = recent.get("accessionNumber", [])
@@ -42,7 +48,10 @@ async def find_prelim_turnarounds(
         filed_list = recent.get("filedAt", []) or recent.get("filingDate", [])
         doc_descriptions = recent.get("primaryDocDescription", [])
 
+        checked = 0
         for accession, form, filed_at_str, desc in zip(accessions, forms, filed_list, doc_descriptions):
+            if checked >= max_8k_per_cik:
+                break
             if form != "8-K":
                 continue
             if not filed_at_str:
@@ -50,6 +59,9 @@ async def find_prelim_turnarounds(
             filed_at = to_utc(datetime.fromisoformat(filed_at_str))
             if filed_at < cutoff:
                 continue
+            checked += 1
+            if time.monotonic() - start > time_limit_sec:
+                break
 
             index_link = _build_index_link(cik, accession)
             try:
@@ -85,6 +97,9 @@ async def find_prelim_turnarounds(
                 )
             if len(results) >= limit:
                 return results
+
+        if time.monotonic() - start > time_limit_sec:
+            break
 
     return results
 
