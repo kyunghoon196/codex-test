@@ -1,0 +1,11 @@
+# .gitignore - Ignore build artifacts and local environment files
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.env
+.venv/
+dist/
+*.pyc
+*.egg-info/
+artifacts/
